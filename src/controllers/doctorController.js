@@ -17,4 +17,20 @@ const CheckAvailability = async(req, res)=>{
     
 }
 
-export {CheckAvailability};
+const doctorlists = async(req, res)=>{
+    try{
+     const doctordata = await doctormodel.find({});
+
+     //not found doctor
+     if(!doctordata){
+        res.json({success : "false", message : "No doctor found"})
+     }
+
+     res.json({succes: true, message : doctordata});
+
+    }catch(err){
+        res.json({success : "false", message : err})
+    }
+}
+
+export {CheckAvailability, doctorlists};
