@@ -1,6 +1,6 @@
 import upload from "../middlewares/multer.js";
 import doctormodel from "../models/doctorsSchema.js";
-import validation from "../utils/validation.js";
+import {validation} from "../utils/validation.js";
 import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";

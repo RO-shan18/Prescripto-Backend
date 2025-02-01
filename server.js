@@ -6,6 +6,7 @@ import cloudinaryimage from "./src/config/cloudinary.js";
 import adminRouter from "./src/routes/adminRoutes.js";
 import cookie from "cookie-parser";
 import doctorRouter from "./src/routes/doctorRoutes.js";
+import userRouter from "./src/routes/userRoutes.js";
 
 //config server
 const app = express();
@@ -27,6 +28,9 @@ app.get("/", (req, res) => {
 //Admin Router
 app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRouter);
+
+//user Router
+app.use("/api/user", userRouter);
 
 //connection
 cloudinaryimage()

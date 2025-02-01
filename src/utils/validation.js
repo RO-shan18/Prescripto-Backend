@@ -1,6 +1,6 @@
 import validator from "validator";
 
-const validation = (req)=>{
+export const validation = (req)=>{
 
         const {name , email, password, speciality, degree, experience, about, fees, Address } = req.body;
 
@@ -8,22 +8,34 @@ const validation = (req)=>{
 
     //Checks an empty field
     if(!email || !name || !password || !speciality || !degree || !experience || !about || !fees || !Address){
-        return res.json({success : "false", message : "Field is Empty"})
+        throw new Error("Field is empty")
     }
-
-    console.log("valid")
 
     //Validate an email
     if(!validator.isEmail(email)){
-        return res.json({success : "false", message : "Email is not valid"})
+        throw new Error("Email is not valid")
     }
 
-    console.log("valid")
     //validate an password
     if(!validator.isStrongPassword(password)){
-        return res.json({success : "false", message : "Password should contains atleast 8 characters, Capital letters and numbers"})
+        throw new Error("Password should contains atleast 8 characters, Capital letters and numbers")
     }
-    console.log("valid")
 }
 
-export default validation
+
+export const userValidation = (req)=>{
+
+    const {email, password, name} = req.body;
+
+    if(!email || !password || !name){
+        throw new Error("Field is empty")
+    }
+
+    if(!validator.isEmail(email)){
+        throw new Error("Email is not valid");
+    }
+
+    if(!validator.isStrongPassword(password)){
+       throw new Error("Password should contains atleast 8 characters, Capital letters and numbers")
+    }
+}

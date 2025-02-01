@@ -12,7 +12,7 @@ const CheckAvailability = async(req, res)=>{
         res.json({success : "true", message : "Availability change"})
 
     }catch(err){
-        res.json({success : "false", message : err})
+        res.json({success : "false", message : err })
     }
     
 }
@@ -29,7 +29,7 @@ const doctorlists = async(req, res)=>{
      res.json({succes: true, message : doctordata});
 
     }catch(err){
-        res.json({success : "false", message : err})
+        res.json({success : "false", message : err + " "})
     }
 }
 

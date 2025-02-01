@@ -20,10 +20,13 @@ const authentication = async (req, res, next)=>{
         next();
     }
     
-
     }catch(err){
         return res.status(400).send("ERR: " + err);
     }
+}
+
+const authuser = async (req, res, next)=>{
+    
 }
 
 export default authentication
