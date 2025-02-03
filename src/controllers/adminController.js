@@ -1,4 +1,4 @@
-import upload from "../middlewares/multer.js";
+
 import doctormodel from "../models/doctorsSchema.js";
 import {validation} from "../utils/validation.js";
 import bcrypt from "bcrypt";
@@ -23,9 +23,6 @@ const addDoctor = async (req, res) => {
     } = req.body;
     const imagefile = req.file;
 
-    console.log("Request body:", req.body);
-    console.log("Uploaded image:", imagefile);
-
     //Encrypt password
     const encryptedPassword = await bcrypt.hash(password, 10);
 
@@ -44,7 +41,7 @@ const addDoctor = async (req, res) => {
       experience,
       about,
       fees,
-      Address,
+      Address : JSON.parse(Address),
       image: imageURL,
       date: Date.now(),
     };
