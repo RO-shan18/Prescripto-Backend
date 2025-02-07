@@ -14,11 +14,13 @@ const port = process.env.port || 3000;
 
 //middlewares
 app.use(express.json());
+
 app.use(cors({
-  origin: "http://localhost:5174", // Frontend URL
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], 
-  credentials: true, // Allow credentials (cookies)
+  origin: "http://localhost:5173", // Frontend URL
+  credentials:true, // Allow credentials (cookies)
 }));
+
+
 app.use(cookie());
 
 //api

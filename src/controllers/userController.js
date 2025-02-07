@@ -5,6 +5,8 @@ import userModels from "../models/userSchema.js";
 import {userValidation}  from "../utils/validation.js";
 import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
+import doctormodel from "../models/doctorsSchema.js";
+import appointmentmodel from "../models/appointmentsSchema.js";
 
 const userRegister = async(req, res) =>{
 
@@ -14,6 +16,8 @@ const userRegister = async(req, res) =>{
 
         const {email, password, name} = req.body;
 
+        const userid = "12345"
+
         //hash a password
         const encryptpassword = await bcrypt.hash(password, 10);
 
@@ -22,11 +26,10 @@ const userRegister = async(req, res) =>{
             email : email,
             password : encryptpassword,
             name : name,
-            userid
         })
 
         //creating a user token and send it as a cookie
-        const Usertoken = await jwt.sign({userid}, "user@123", {expiresIn : "7d"})
+        const Usertoken = await jwt.sign({userid}, "user@123", {expiresIn : "1d"})
         res.cookie("token", Usertoken)
 
         //save user data in database
@@ -77,10 +80,10 @@ const userProfile = async(req, res)=>{
 
         const data = await userModels.findById(userid).select("-password").exec();
 
-        res.json({success:"true", message: data});
+        res.json({success:true, message: data});
 
     }catch(err){
-        res.json({success : "false", message : err.message})
+        res.json({success :false, message : err.message})
     }
 }
 
@@ -102,11 +105,61 @@ const updateProfile = async(req, res)=>{
         await userModels.findByIdAndUpdate(userid, {image : imageurl});
     }
 
-        res.json({success: "true", message : "Profile Updated successfully"})
+        res.json({success: true, message : "Profile Updated successfully"})
 
     }catch(err){
-        res.json({success : "false", message : err.message})
+        res.json({success : false, message : err.message})
     }
 }
 
-export {userRegister, userLogin, userProfile, updateProfile};
+const slotsappointment = async(req, res)=>{
+    try{
+        const {userid, doctorid, slotTime, slotdate} = req.body;
+
+        const docData = await doctormodel.findById(doctorid).select("-password").exec();
+
+        if(!docData.available){
+           return res.json({success: false, message : "Doctor is not available"});
+        }
+
+        const slots_booked = docData.SlotsBooked;
+
+        if(slots_booked[slotdate]){
+            if(slots_booked[slotdate].includes(slotTime)){
+               return res.json({success: false, message: "Slot is not available"});
+            }else{
+                slots_booked[slotdate].push(slotTime);
+            }
+        }else{
+            slots_booked[slotdate] = [];
+            slots_booked[slotdate].push(slotTime);
+        }
+
+        const userData = await userModels.findById(userid).select("-password");
+
+        delete docData.slots_booked;
+
+        const newappointment = {
+            userId : userid,
+            docId : doctorid,
+            slotTime : slotTime,
+            slotDate : slotdate,
+            userData,
+            docData,
+            amount:docData.fees,
+            date:Date.now(),
+        }
+
+        const appointment = await appointmentmodel(newappointment);
+        await appointment.save();
+
+        await doctormodel.findByIdAndUpdate(doctorid, {SlotsBooked : slots_booked});
+
+        res.json({success:true, message:"Appointment Booked successfully"});
+
+    }catch(err){
+        res.json({success : false, message : err.message})
+    }
+}
+
+export {userRegister, userLogin, userProfile, updateProfile, slotsappointment};
