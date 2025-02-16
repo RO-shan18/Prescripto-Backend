@@ -1,5 +1,4 @@
 //Register a new user
-
 import jwt from "jsonwebtoken";
 import userModels from "../models/userSchema.js";
 import {userValidation}  from "../utils/validation.js";
@@ -7,6 +6,7 @@ import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
 import doctormodel from "../models/doctorsSchema.js";
 import appointmentmodel from "../models/appointmentsSchema.js";
+import Razorpay from "razorpay";
 
 const userRegister = async(req, res) =>{
 
@@ -51,14 +51,14 @@ const userLogin = async(req, res)=>{
         const finduser = await userModels.findOne({email : email}).exec()
 
         if(!finduser){
-            res.json({success : false, message : "User not found!!"})
+            return res.json({success : false, message : "User not found!!"})
         }
 
         //decrypting the password
         const dcryptpassword = await bcrypt.compare(password, finduser.password);
 
         if(!dcryptpassword){
-            res.json({success : false, message : "Password is not valid"});
+            return res.json({success : false, message : "Password is not valid"});
         }
 
         const userid = finduser._id
@@ -162,4 +162,97 @@ const slotsappointment = async(req, res)=>{
     }
 }
 
-export {userRegister, userLogin, userProfile, updateProfile, slotsappointment};
+const getmyappointments = async(req, res)=>{
+    try{
+        const {userid} = req.body;
+
+        const appointments = await appointmentmodel.find({userId: userid});
+
+        res.json({success:true, message:appointments});
+
+    }catch(err){
+        res.json({success : false, message : err.message})
+    }
+}
+
+const cancelappointment = async(req, res)=>{
+    try{
+        const {userid, appointmentid} = req.body;
+
+        const appointmentdata = await appointmentmodel.findById({_id: appointmentid})
+
+        if(appointmentdata?.userId !== userid){
+            res.json({success:false, message: "Unauthorized access"});
+        }
+
+        await appointmentmodel.findByIdAndUpdate(appointmentid, {Cancelled:true});
+
+        //slots removed from doctorslots
+        const { docId, slotTime, slotDate} = appointmentdata;
+
+        let doctordata = await doctormodel.findById({_id : docId})
+
+        let slotsbooked = doctordata.SlotsBooked;
+
+        slotsbooked[slotDate] = slotsbooked[slotDate].filter(e=> e != slotTime);
+
+        await doctormodel.findByIdAndUpdate(docId, {SlotsBooked: slotsbooked});
+
+        res.json({success:true, message:"Appointment cancelled"});
+
+    }catch(err){
+        res.json({success:false, message : err.message})
+    }
+}
+
+const razorpayinstance = new Razorpay({
+    key_id: 'rzp_test_BD5G1ROQVfDaZl',
+    key_secret: 'yBA1vJ3cbHCHVVzZoCjCJ4tM'
+})
+
+const onlinepayment = async(req, res)=>{
+    try{
+
+        const {appointmentid} = req.body;
+
+        const appointmentdata = await appointmentmodel.findById({_id : appointmentid});
+
+        if(!appointmentdata || appointmentdata?.Cancelled){
+            res.json({success:false, message: "Appointment not found or already cancelled"});
+        }
+
+        const options = {
+            amount : appointmentdata?.amount * 100,
+            currency: "INR",
+            receipt: appointmentid,
+        }
+
+        const order = await razorpayinstance.orders.create(options);
+
+        res.json({success:true, message: order});
+
+    }catch(err){
+        res.json({success:false, message : err.message})
+    }
+}
+
+const verifypayment = async(req, res)=>{
+
+    try{
+        const {razorpay_order_id} = req.body;
+
+        const orderinfo = await razorpayinstance.orders.fetch(razorpay_order_id);
+
+            if(orderinfo?.status === "paid"){
+                await appointmentmodel.findByIdAndUpdate(orderinfo?.receipt, {payment: true});
+                res.json({success:true, message: "Payment Successful"});
+            }else{
+                res.json({success:false, message: "Payment failed"});
+            }
+
+    }catch(err){
+        res.json({success:false, message : err.message})
+    }
+}
+
+export {userRegister, userLogin, userProfile, updateProfile, slotsappointment, getmyappointments, cancelappointment, onlinepayment, verifypayment};

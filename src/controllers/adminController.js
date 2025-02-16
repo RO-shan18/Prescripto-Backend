@@ -4,6 +4,8 @@ import {validation} from "../utils/validation.js";
 import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
+import appointmentmodel from "../models/appointmentsSchema.js";
+import userModels from "../models/userSchema.js";
 
 const addDoctor = async (req, res) => {
   try {
@@ -72,7 +74,7 @@ const adminlogin = async (req, res) => {
       res.json({ success: false, message: "Wrong EmailId/Password !!!!" });
     }
   } catch (err) {
-    res.status(400).send("ERR: " + err);
+    res.status(400).json({success: false, message : err});
   }
 };
 
@@ -81,8 +83,6 @@ const alldoctors = async (req, res)=>{
 
     const doctordata = await doctormodel.find({}).select("-password")
 
-    console.log(doctordata);
-
     if(doctordata){
     res.json({ success: true, message: doctordata })
     }else{
@@ -90,8 +90,68 @@ const alldoctors = async (req, res)=>{
     }
 
   }catch(err){
-    res.status(400).send("ERR: " + err);
+    res.status(400).json({success: false, message : err});
   }
 }
 
-export { addDoctor, adminlogin, alldoctors };
+const getallAppointments = async (req, res)=>{
+  try{
+    const appointmentdata = await appointmentmodel.find({});
+
+    res.json({success:true, message:appointmentdata});
+
+  }catch{
+    res.status(400).json({success: false, message : err});
+  }
+}
+
+const cancelappointment = async(req, res)=>{
+  try{
+      const {appointmentid} = req.body;
+
+      const appointmentdata = await appointmentmodel.findById({_id: appointmentid})
+
+      await appointmentmodel.findByIdAndUpdate(appointmentid, {Cancelled:true});
+
+      //slots removed from doctorslots
+      const { docId, slotTime, slotDate} = appointmentdata;
+
+      let doctordata = await doctormodel.findById({_id : docId})
+
+      let slotsbooked = doctordata.SlotsBooked;
+
+      slotsbooked[slotDate] = slotsbooked[slotDate].filter(e=> e != slotTime);
+
+      await doctormodel.findByIdAndUpdate(docId, {SlotsBooked: slotsbooked});
+
+      res.json({success:true, message:"Appointment cancelled"});
+
+  }catch(err){
+      res.json({success:false, message : err.message})
+  }
+}
+
+const dashboarddata = async(req, res)=>{
+  try{
+
+    const userdata = await userModels.find({});
+    const doctorsdata = await doctormodel.find({});
+    const appointmentdata = await appointmentmodel.find({});
+
+    const object = {
+      users: userdata.length,
+      doctors : doctorsdata.length,
+      appointment : appointmentdata.length,
+      recentappointment : appointmentdata.reverse().splice(0,5),
+    }
+
+    console.log(object)
+
+    res.json({success: true, message:object})
+
+  }catch(err){
+    res.json({success:false, message : err.message})
+  }
+}
+
+export { addDoctor, adminlogin, alldoctors, getallAppointments, cancelappointment, dashboarddata};
